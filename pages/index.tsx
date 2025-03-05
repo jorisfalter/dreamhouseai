@@ -47,7 +47,7 @@ export default function Home() {
               Dream House Generator
             </h1>
             <p className="text-xl text-gray-600 animate-fade-in">
-              Describe your perfect home and watch it come to life with AI
+              Describe your perfect home and watch it come to life!
             </p>
           </div>
 

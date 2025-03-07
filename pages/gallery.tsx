@@ -14,6 +14,7 @@ interface House {
 export default function Gallery() {
   const [houses, setHouses] = useState<House[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<{ url: string; prompt: string } | null>(null);
 
   useEffect(() => {
     const fetchHouses = async () => {
@@ -62,7 +63,7 @@ export default function Gallery() {
                 key={house._id}
                 className="bg-white/70 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-102"
               >
-                <div className="relative h-64">
+                <div className="relative h-64 cursor-pointer" onClick={() => setSelectedImage({ url: house.imageData, prompt: house.prompt })}>
                   {house.imageData ? (
                     <img
                       src={house.imageData}
@@ -80,13 +81,29 @@ export default function Gallery() {
                   )}
                 </div>
                 <div className="p-6">
-                  <p className="text-gray-600 text-sm mb-2">
-                    {new Date(house.createdAt).toLocaleDateString()}
-                  </p>
                   <p className="text-gray-800 line-clamp-3">{house.prompt}</p>
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {selectedImage && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedImage(null)}
+          >
+            <div className="max-w-4xl w-full bg-white rounded-lg overflow-hidden shadow-xl">
+              <img
+                src={selectedImage.url}
+                alt={selectedImage.prompt}
+                className="w-full h-auto"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <div className="p-4 bg-white">
+                <p className="text-gray-800">{selectedImage.prompt}</p>
+              </div>
+            </div>
           </div>
         )}
 

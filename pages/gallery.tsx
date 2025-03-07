@@ -58,7 +58,7 @@ export default function Gallery() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {houses.map((house) => (
+            {Array.isArray(houses) ? houses.map((house) => (
               <div
                 key={house._id}
                 className="bg-white/70 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-102"
@@ -84,7 +84,7 @@ export default function Gallery() {
                   <p className="text-gray-800 line-clamp-3">{house.prompt}</p>
                 </div>
               </div>
-            ))}
+            )) : null}
           </div>
         )}
 

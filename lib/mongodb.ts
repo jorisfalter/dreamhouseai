@@ -24,7 +24,21 @@ export async function connectDB() {
     const opts = {
       bufferCommands: false,
     };
-    global.mongoose.promise = mongoose.connect(process.env.MONGODB_URI, opts);
+    
+    const promise = mongoose.connect(process.env.MONGODB_URI, opts);
+    
+    if (!global.mongoose) {
+      global.mongoose = {
+        conn: null,
+        promise: null
+      }
+    }
+
+    global.mongoose = {
+      ...global.mongoose,
+      promise: promise,
+      conn: await promise
+    };
   }
   try {
     global.mongoose.conn = await global.mongoose.promise;

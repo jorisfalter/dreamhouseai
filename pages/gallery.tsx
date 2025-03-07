@@ -63,7 +63,7 @@ export default function Gallery() {
                 key={house._id}
                 className="bg-white/70 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-102"
               >
-                <div className="relative h-64 cursor-pointer" onClick={() => setSelectedImage({ url: house.imageData, prompt: house.prompt })}>
+                <div className="relative aspect-square cursor-pointer" onClick={() => setSelectedImage({ url: house.imageData, prompt: house.prompt })}>
                   {house.imageData ? (
                     <img
                       src={house.imageData}

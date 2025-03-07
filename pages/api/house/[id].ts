@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import dbConnect from '../../lib/mongodb';
-import House from '../../models/House';
+import dbConnect from '../../../lib/mongodb';
+import House from '../../../models/House';
 
 export default async function handler(
   req: NextApiRequest,
@@ -12,17 +12,18 @@ export default async function handler(
 
   try {
     await dbConnect();
-    
-    // Only select the fields we need initially, excluding the large imageData
-    const houses = await House.find({}, { imageData: 0 })
-      .sort({ createdAt: -1 })
-      .lean();
-    
-    res.status(200).json(houses);
+    const { id } = req.query;
+
+    const house = await House.findById(id);
+    if (!house) {
+      return res.status(404).json({ message: 'House not found' });
+    }
+
+    res.status(200).json({ imageData: house.imageData });
   } catch (error) {
-    console.error('Error fetching houses:', error);
+    console.error('Error fetching house image:', error);
     res.status(500).json({ 
-      message: 'Failed to fetch houses',
+      message: 'Failed to fetch house image',
       error: process.env.NODE_ENV === 'development' ? error : undefined
     });
   }

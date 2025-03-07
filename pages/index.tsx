@@ -1,12 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import Header from '../components/Header';
+
+interface House {
+  _id: string;
+  prompt: string;
+  imageUrl: string;
+  createdAt: string;
+}
 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
   const [generatedImage, setGeneratedImage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [houses, setHouses] = useState<House[]>([]);
+  const [houseImages, setHouseImages] = useState<Record<string, string>>({});
 
   const generateHouse = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +38,30 @@ export default function Home() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const fetchHouses = async () => {
+      try {
+        const response = await fetch('/api/houses');
+        const data = await response.json();
+        setHouses(data);
+        
+        // Fetch images for each house
+        data.forEach(async (house: House) => {
+          const imageResponse = await fetch(`/api/house/${house._id}`);
+          const imageData = await imageResponse.json();
+          setHouseImages(prev => ({
+            ...prev,
+            [house._id]: imageData.imageData
+          }));
+        });
+      } catch (error) {
+        console.error('Error fetching houses:', error);
+      }
+    };
+
+    fetchHouses();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 transition-all duration-500">

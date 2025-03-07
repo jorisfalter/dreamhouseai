@@ -15,14 +15,28 @@ export default function Gallery() {
   const [houses, setHouses] = useState<House[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<{ url: string; prompt: string } | null>(null);
+  const [houseImages, setHouseImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchHouses = async () => {
       try {
         const response = await fetch('/api/houses');
         const data = await response.json();
-        console.log('Fetched houses:', data);
         setHouses(data);
+        
+        // Fetch images for each house
+        data.forEach(async (house: House) => {
+          try {
+            const imageResponse = await fetch(`/api/house/${house._id}`);
+            const imageData = await imageResponse.json();
+            setHouseImages(prev => ({
+              ...prev,
+              [house._id]: imageData.imageData
+            }));
+          } catch (error) {
+            console.error(`Error fetching image for house ${house._id}:`, error);
+          }
+        });
       } catch (error) {
         console.error('Error fetching houses:', error);
       } finally {
@@ -63,20 +77,26 @@ export default function Gallery() {
                 key={house._id}
                 className="bg-white/70 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-102"
               >
-                <div className="relative aspect-square cursor-pointer" onClick={() => setSelectedImage({ url: house.imageData, prompt: house.prompt })}>
-                  {house.imageData ? (
+                <div 
+                  className="relative aspect-square cursor-pointer" 
+                  onClick={() => setSelectedImage({ 
+                    url: houseImages[house._id] || house.imageData, 
+                    prompt: house.prompt 
+                  })}
+                >
+                  {(houseImages[house._id] || house.imageData) ? (
                     <img
-                      src={house.imageData}
+                      src={houseImages[house._id] || house.imageData}
                       alt={house.prompt}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         console.error('Error loading image:', e);
-                        (e.target as HTMLImageElement).src = '/placeholder-house.png'; // Fallback image
+                        (e.target as HTMLImageElement).src = '/placeholder-house.png';
                       }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                      <p className="text-gray-500">Image not available</p>
+                      <p className="text-gray-500">Loading image...</p>
                     </div>
                   )}
                 </div>

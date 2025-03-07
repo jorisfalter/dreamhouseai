@@ -26,6 +26,10 @@ export default async function handler(
     await dbConnect();
 
     const { prompt } = req.body;
+    
+    if (!prompt) {
+      return res.status(400).json({ message: 'Prompt is required' });
+    }
 
     // Generate image using OpenAI
     const response = await openai.images.generate({
@@ -38,6 +42,9 @@ export default async function handler(
     });
 
     const imageUrl = response.data[0].url;
+    if (!imageUrl) {
+      throw new Error('No image URL received from OpenAI');
+    }
     
     // Fetch and convert image to Base64
     const imageData = await fetchImageAsBase64(imageUrl);
@@ -52,7 +59,16 @@ export default async function handler(
     // Return the stored Base64 image data instead of the temporary URL
     res.status(200).json({ imageUrl: house.imageData });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ message: 'Error generating house' });
+    console.error('Error details:', error);
+    let errorMessage = 'Error generating house';
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    
+    res.status(500).json({ 
+      message: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error : undefined 
+    });
   }
 } 

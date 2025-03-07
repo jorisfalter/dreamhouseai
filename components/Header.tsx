@@ -14,7 +14,7 @@ export default function Header() {
                 alt="Dream House AI Logo"
                 width={32}
                 height={32}
-                className="object-contain"
+                className="object-contain w-auto h-auto"
               />
             </div>
             <span className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">

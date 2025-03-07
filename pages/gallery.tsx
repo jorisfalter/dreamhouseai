@@ -21,22 +21,26 @@ export default function Gallery() {
     const fetchHouses = async () => {
       try {
         const response = await fetch('/api/houses');
-        const data = await response.json();
-        setHouses(data);
-        
-        // Fetch images for each house
-        data.forEach(async (house: House) => {
-          try {
-            const imageResponse = await fetch(`/api/house/${house._id}`);
-            const imageData = await imageResponse.json();
-            setHouseImages(prev => ({
-              ...prev,
-              [house._id]: imageData.imageData
-            }));
-          } catch (error) {
-            console.error(`Error fetching image for house ${house._id}:`, error);
-          }
-        });
+        const result = await response.json();
+        if (result.success) {
+          setHouses(result.data);
+          
+          // Fetch images for each house
+          result.data.forEach(async (house: House) => {
+            try {
+              const imageResponse = await fetch(`/api/house/${house._id}`);
+              const imageData = await imageResponse.json();
+              setHouseImages(prev => ({
+                ...prev,
+                [house._id]: imageData.imageData
+              }));
+            } catch (error) {
+              console.error(`Error fetching image for house ${house._id}:`, error);
+            }
+          });
+        } else {
+          console.error('Error:', result.message);
+        }
       } catch (error) {
         console.error('Error fetching houses:', error);
       } finally {

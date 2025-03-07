@@ -2,6 +2,12 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../lib/mongodb';
 import House from '../../models/House';
 
+export const config = {
+  api: {
+    responseLimit: false,
+  },
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -11,20 +17,21 @@ export default async function handler(
   }
 
   try {
-    console.log('Connecting to MongoDB...');
     await dbConnect();
-    console.log('Connected to MongoDB');
     
     // Only select the fields we need initially, excluding the large imageData
     const houses = await House.find({}, { imageData: 0 })
       .sort({ createdAt: -1 })
       .lean();
     
-    console.log(`Found ${houses.length} houses`);
-    res.status(200).json(houses);
+    return res.status(200).json({ 
+      success: true,
+      data: houses 
+    });
   } catch (error) {
-    console.error('Error in /api/houses:', error);
-    res.status(500).json({ 
+    console.error('Error fetching houses:', error);
+    return res.status(500).json({ 
+      success: false,
       message: 'Failed to fetch houses',
       error: process.env.NODE_ENV === 'development' ? error : undefined
     });

@@ -7,11 +7,26 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 async function fetchImageAsBase64(url: string): Promise<string> {
-  const response = await fetch(url);
-  const buffer = await response.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString('base64');
-  return `data:${response.headers.get('content-type')};base64,${base64}`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const buffer = await response.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    const contentType = response.headers.get('content-type');
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    console.error('Error fetching image:', error);
+    throw error;
+  }
 }
 
 export default async function handler(
@@ -56,19 +71,17 @@ export default async function handler(
       imageData,
     });
 
-    // Return the stored Base64 image data instead of the temporary URL
-    res.status(200).json({ imageUrl: house.imageData });
+    return res.status(200).json({ 
+      success: true,
+      imageUrl: house.imageData 
+    });
+
   } catch (error) {
     console.error('Error details:', error);
-    let errorMessage = 'Error generating house';
-    
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    }
-    
-    res.status(500).json({ 
-      message: errorMessage,
-      details: process.env.NODE_ENV === 'development' ? error : undefined 
+    return res.status(500).json({ 
+      success: false,
+      message: error instanceof Error ? error.message : 'Error generating house',
+      error: process.env.NODE_ENV === 'development' ? error : undefined
     });
   }
 } 

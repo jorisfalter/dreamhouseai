@@ -24,59 +24,52 @@ export default function Home() {
     setError('');
     setGeneratedImage('');
     
-    const startTime = Date.now();
-    console.log('Starting house generation...');
-    
     try {
-      // Step 1: Generate the image
-      console.log('Calling generate-house-edge API...');
+      // Step 1: Generate image URL from OpenAI
       const generateResponse = await fetch('/api/generate-house-edge', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt }),
       });
       
-      console.log(`API response received in ${Date.now() - startTime}ms`);
-      
       const generateData = await generateResponse.json();
-      console.log('API response data:', generateData);
-      
       if (!generateResponse.ok || !generateData.success) {
         throw new Error(generateData.message || 'Failed to generate house');
       }
 
-      // Show the image immediately
-      setGeneratedImage(generateData.imageData);
-      console.log('Image set to state');
+      // Step 2: Fetch and convert image
+      const fetchResponse = await fetch('/api/fetch-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: generateData.imageUrl }),
+      });
 
-      // Step 2: Save to database
-      if (generateData.imageUrl && generateData.imageData) {
-        console.log('Starting database save...');
-        const saveResponse = await fetch('/api/save-house', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            prompt: generateData.prompt,
-            imageUrl: generateData.imageUrl,
-            imageData: generateData.imageData,
-          }),
-        });
-
-        const saveData = await saveResponse.json();
-        console.log('Database save response:', saveData);
-        
-        if (!saveResponse.ok || !saveData.success) {
-          console.error('Failed to save house:', saveData.message);
-        }
+      const fetchData = await fetchResponse.json();
+      if (!fetchResponse.ok || !fetchData.success) {
+        throw new Error(fetchData.message || 'Failed to fetch image');
       }
 
-      console.log(`Total operation completed in ${Date.now() - startTime}ms`);
+      // Show the image immediately
+      setGeneratedImage(fetchData.imageData);
+
+      // Step 3: Save to database
+      const saveResponse = await fetch('/api/save-house', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: generateData.prompt,
+          imageUrl: generateData.imageUrl,
+          imageData: fetchData.imageData,
+        }),
+      });
+
+      const saveData = await saveResponse.json();
+      if (!saveResponse.ok || !saveData.success) {
+        console.error('Failed to save house:', saveData.message);
+      }
+
     } catch (error) {
-      console.error(`Error after ${Date.now() - startTime}ms:`, error);
+      console.error('Error:', error);
       setError(error instanceof Error ? error.message : 'An error occurred while generating the house');
     } finally {
       setIsLoading(false);

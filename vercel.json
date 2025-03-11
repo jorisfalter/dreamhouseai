@@ -1,9 +1,25 @@
 {
   "version": 2,
+  "regions": ["iad1"],
   "functions": {
-    "pages/api/**/*": {
-      "maxDuration": 60
+    "pages/api/generate-house.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "pages/api/save-house.ts": {
+      "maxDuration": 60,
+      "memory": 1024
     }
   },
-  "regions": ["iad1"]
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    }
+  ]
 } 

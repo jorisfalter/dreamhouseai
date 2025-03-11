@@ -26,7 +26,7 @@ export default function Home() {
     
     try {
       // Step 1: Generate the image
-      const generateResponse = await fetch('/api/generate-house', {
+      const generateResponse = await fetch('/api/generate-house-edge', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

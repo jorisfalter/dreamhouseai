@@ -1,7 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
-import dbConnect from '../../lib/mongodb';
-import House from '../../models/House';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -12,7 +10,6 @@ export const config = {
     bodyParser: {
       sizeLimit: '10mb',
     },
-    responseLimit: false
   },
 };
 
@@ -47,16 +44,6 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Add CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
   if (req.method !== 'POST') {
     return res.status(405).json({ 
       success: false,
@@ -74,9 +61,6 @@ export default async function handler(
       });
     }
 
-    // Start DB connection early
-    const dbPromise = dbConnect();
-
     // Generate image using OpenAI
     const response = await openai.images.generate({
       model: "dall-e-3",
@@ -92,43 +76,18 @@ export default async function handler(
       throw new Error('No image URL received from OpenAI');
     }
 
-    // Fetch image and connect to DB in parallel
-    const [imageData, db] = await Promise.all([
-      fetchImageAsBase64(imageUrl),
-      dbPromise
-    ]);
-
-    // Save to MongoDB
-    const house = await House.create({
-      prompt,
-      imageUrl,
-      imageData,
-    });
+    // Convert to base64
+    const imageData = await fetchImageAsBase64(imageUrl);
 
     return res.status(200).json({ 
       success: true,
-      imageUrl: house.imageData 
+      imageUrl,
+      imageData,
+      prompt
     });
 
   } catch (error) {
-    console.error('Error details:', error);
-    
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return res.status(504).json({
-          success: false,
-          message: 'Request timeout - please try again'
-        });
-      }
-      
-      if (error.message.includes('MongoDB') || error.message.includes('mongoose')) {
-        return res.status(503).json({
-          success: false,
-          message: 'Database connection error - please try again'
-        });
-      }
-    }
-
+    console.error('Error generating image:', error);
     return res.status(500).json({ 
       success: false,
       message: error instanceof Error ? error.message : 'Error generating house'

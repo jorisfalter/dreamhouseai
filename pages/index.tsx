@@ -25,7 +25,8 @@ export default function Home() {
     setGeneratedImage('');
     
     try {
-      const response = await fetch('/api/generate-house', {
+      // Step 1: Generate the image
+      const generateResponse = await fetch('/api/generate-house', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -33,17 +34,35 @@ export default function Home() {
         body: JSON.stringify({ prompt }),
       });
       
-      const data = await response.json();
+      const generateData = await generateResponse.json();
       
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to generate house');
+      if (!generateResponse.ok || !generateData.success) {
+        throw new Error(generateData.message || 'Failed to generate house');
       }
 
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to generate house');
+      // Show the image immediately
+      setGeneratedImage(generateData.imageData);
+
+      // Step 2: Save to database
+      const saveResponse = await fetch('/api/save-house', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: generateData.prompt,
+          imageUrl: generateData.imageUrl,
+          imageData: generateData.imageData,
+        }),
+      });
+
+      const saveData = await saveResponse.json();
+      
+      if (!saveResponse.ok || !saveData.success) {
+        console.error('Failed to save house:', saveData.message);
+        // Don't throw here - we still want to show the image
       }
 
-      setGeneratedImage(data.imageUrl);
     } catch (error) {
       console.error('Error:', error);
       setError(error instanceof Error ? error.message : 'An error occurred while generating the house');

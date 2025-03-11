@@ -12,11 +12,11 @@ export const config = {
     bodyParser: {
       sizeLimit: '10mb',
     },
+    responseLimit: false
   },
-  maxDuration: 60,
 };
 
-async function fetchImageAsBase64(url: string, timeout = 30000): Promise<string> {
+async function fetchImageAsBase64(url: string, timeout = 60000): Promise<string> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -29,14 +29,17 @@ async function fetchImageAsBase64(url: string, timeout = 30000): Promise<string>
     });
     clearTimeout(timeoutId);
 
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
     const buffer = await response.arrayBuffer();
     const base64 = Buffer.from(buffer).toString('base64');
     const contentType = response.headers.get('content-type') || 'image/png';
     return `data:${contentType};base64,${base64}`;
   } catch (error) {
     console.error('Error fetching image:', error);
-    throw error;
+    throw new Error('Failed to fetch generated image');
   }
 }
 
@@ -44,19 +47,35 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
-  // Start MongoDB connection early
-  const dbPromise = dbConnect();
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      success: false,
+      message: 'Method not allowed' 
+    });
+  }
 
   try {
     const { prompt } = req.body;
     
     if (!prompt) {
-      return res.status(400).json({ message: 'Prompt is required' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Prompt is required' 
+      });
     }
+
+    // Start DB connection early
+    const dbPromise = dbConnect();
 
     // Generate image using OpenAI
     const response = await openai.images.generate({
@@ -72,8 +91,8 @@ export default async function handler(
     if (!imageUrl) {
       throw new Error('No image URL received from OpenAI');
     }
-    
-    // Fetch image in parallel with DB connection
+
+    // Fetch image and connect to DB in parallel
     const [imageData, db] = await Promise.all([
       fetchImageAsBase64(imageUrl),
       dbPromise
@@ -98,22 +117,21 @@ export default async function handler(
       if (error.name === 'AbortError') {
         return res.status(504).json({
           success: false,
-          message: 'Request timeout - please try again',
+          message: 'Request timeout - please try again'
         });
       }
       
       if (error.message.includes('MongoDB') || error.message.includes('mongoose')) {
         return res.status(503).json({
           success: false,
-          message: 'Database connection error - please try again',
+          message: 'Database connection error - please try again'
         });
       }
     }
 
     return res.status(500).json({ 
       success: false,
-      message: error instanceof Error ? error.message : 'Error generating house',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      message: error instanceof Error ? error.message : 'Error generating house'
     });
   }
 } 

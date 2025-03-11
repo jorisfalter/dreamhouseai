@@ -22,6 +22,7 @@ export default function Home() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setGeneratedImage('');
     
     try {
       const response = await fetch('/api/generate-house', {
@@ -32,22 +33,20 @@ export default function Home() {
         body: JSON.stringify({ prompt }),
       });
       
-      if (!response.ok) {
-        if (response.status === 504) {
-          throw new Error('Request timed out - please try again');
-        }
-        throw new Error('Failed to generate house');
-      }
-
       const data = await response.json();
-      if (data.success) {
-        setGeneratedImage(data.imageUrl);
-      } else {
+      
+      if (!response.ok) {
         throw new Error(data.message || 'Failed to generate house');
       }
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to generate house');
+      }
+
+      setGeneratedImage(data.imageUrl);
     } catch (error) {
       console.error('Error:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred');
+      setError(error instanceof Error ? error.message : 'An error occurred while generating the house');
     } finally {
       setIsLoading(false);
     }

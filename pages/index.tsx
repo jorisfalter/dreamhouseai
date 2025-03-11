@@ -16,10 +16,12 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [houses, setHouses] = useState<House[]>([]);
   const [houseImages, setHouseImages] = useState<Record<string, string>>({});
+  const [error, setError] = useState('');
 
   const generateHouse = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
     
     try {
       const response = await fetch('/api/generate-house', {
@@ -30,10 +32,22 @@ export default function Home() {
         body: JSON.stringify({ prompt }),
       });
       
+      if (!response.ok) {
+        if (response.status === 504) {
+          throw new Error('Request timed out - please try again');
+        }
+        throw new Error('Failed to generate house');
+      }
+
       const data = await response.json();
-      setGeneratedImage(data.imageUrl);
+      if (data.success) {
+        setGeneratedImage(data.imageUrl);
+      } else {
+        throw new Error(data.message || 'Failed to generate house');
+      }
     } catch (error) {
       console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -43,18 +57,29 @@ export default function Home() {
     const fetchHouses = async () => {
       try {
         const response = await fetch('/api/houses');
-        const data = await response.json();
-        setHouses(data);
+        const result = await response.json();
         
-        // Fetch images for each house
-        data.forEach(async (house: House) => {
-          const imageResponse = await fetch(`/api/house/${house._id}`);
-          const imageData = await imageResponse.json();
-          setHouseImages(prev => ({
-            ...prev,
-            [house._id]: imageData.imageData
-          }));
-        });
+        if (result.success && Array.isArray(result.data)) {
+          setHouses(result.data);
+          
+          // Fetch images for each house
+          result.data.forEach(async (house: House) => {
+            try {
+              const imageResponse = await fetch(`/api/house/${house._id}`);
+              const imageData = await imageResponse.json();
+              if (imageData.success) {
+                setHouseImages(prev => ({
+                  ...prev,
+                  [house._id]: imageData.imageData
+                }));
+              }
+            } catch (error) {
+              console.error(`Error fetching image for house ${house._id}:`, error);
+            }
+          });
+        } else {
+          console.error('Invalid response format from /api/houses');
+        }
       } catch (error) {
         console.error('Error fetching houses:', error);
       }
@@ -135,6 +160,12 @@ export default function Home() {
                   className="w-full object-cover"
                 />
               </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-4 text-red-500">
+              {error}
             </div>
           )}
         </div>

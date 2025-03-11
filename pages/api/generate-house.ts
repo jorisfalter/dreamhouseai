@@ -13,15 +13,26 @@ export const config = {
       sizeLimit: '10mb',
     },
   },
+  maxDuration: 60,
 };
 
-async function fetchImageAsBase64(url: string): Promise<string> {
+async function fetchImageAsBase64(url: string, timeout = 30000): Promise<string> {
   try {
-    const response = await fetch(url);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    const response = await fetch(url, { 
+      signal: controller.signal,
+      headers: {
+        'Accept': 'image/*'
+      }
+    });
+    clearTimeout(timeoutId);
+
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const buffer = await response.arrayBuffer();
     const base64 = Buffer.from(buffer).toString('base64');
-    const contentType = response.headers.get('content-type');
+    const contentType = response.headers.get('content-type') || 'image/png';
     return `data:${contentType};base64,${base64}`;
   } catch (error) {
     console.error('Error fetching image:', error);
@@ -37,9 +48,10 @@ export default async function handler(
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  try {
-    await dbConnect();
+  // Start MongoDB connection early
+  const dbPromise = dbConnect();
 
+  try {
     const { prompt } = req.body;
     
     if (!prompt) {
@@ -61,8 +73,11 @@ export default async function handler(
       throw new Error('No image URL received from OpenAI');
     }
     
-    // Fetch and convert image to Base64
-    const imageData = await fetchImageAsBase64(imageUrl);
+    // Fetch image in parallel with DB connection
+    const [imageData, db] = await Promise.all([
+      fetchImageAsBase64(imageUrl),
+      dbPromise
+    ]);
 
     // Save to MongoDB
     const house = await House.create({
@@ -78,6 +93,23 @@ export default async function handler(
 
   } catch (error) {
     console.error('Error details:', error);
+    
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        return res.status(504).json({
+          success: false,
+          message: 'Request timeout - please try again',
+        });
+      }
+      
+      if (error.message.includes('MongoDB') || error.message.includes('mongoose')) {
+        return res.status(503).json({
+          success: false,
+          message: 'Database connection error - please try again',
+        });
+      }
+    }
+
     return res.status(500).json({ 
       success: false,
       message: error instanceof Error ? error.message : 'Error generating house',

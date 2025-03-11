@@ -44,23 +44,25 @@ export default function Home() {
       setGeneratedImage(generateData.imageData);
 
       // Step 2: Save to database
-      const saveResponse = await fetch('/api/save-house', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: generateData.prompt,
-          imageUrl: generateData.imageUrl,
-          imageData: generateData.imageData,
-        }),
-      });
+      if (generateData.imageUrl && generateData.imageData) {
+        const saveResponse = await fetch('/api/save-house', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt: generateData.prompt,
+            imageUrl: generateData.imageUrl,
+            imageData: generateData.imageData,
+          }),
+        });
 
-      const saveData = await saveResponse.json();
-      
-      if (!saveResponse.ok || !saveData.success) {
-        console.error('Failed to save house:', saveData.message);
-        // Don't throw here - we still want to show the image
+        const saveData = await saveResponse.json();
+        
+        if (!saveResponse.ok || !saveData.success) {
+          console.error('Failed to save house:', saveData.message);
+          // Don't throw here - we still want to show the image
+        }
       }
 
     } catch (error) {

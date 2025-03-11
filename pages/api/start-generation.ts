@@ -52,11 +52,11 @@ export default async function handler(
     generateImage(job._id, prompt).catch(async (error) => {
       console.error('Background job failed:', error);
       try {
-        const job = await Job.findById(jobId);
-        if (job) {
-          job.status = 'failed';
-          job.error = error instanceof Error ? error.message : 'Unknown error';
-          await job.save();
+        const failedJob = await Job.findById(job._id);
+        if (failedJob) {
+          failedJob.status = 'failed';
+          failedJob.error = error instanceof Error ? error.message : 'Unknown error';
+          await failedJob.save();
         }
       } catch (e) {
         console.error('Failed to update job status:', e);

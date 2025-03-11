@@ -11,18 +11,37 @@ const openai = new OpenAI({
 });
 
 async function fetchImageAsBase64(url: string): Promise<string> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch image: ${response.status}`);
+  console.log('Starting image fetch:', url);
+  const startTime = Date.now();
+  
+  try {
+    const response = await fetch(url);
+    console.log(`Fetch response received in ${Date.now() - startTime}ms`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.status}`);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    console.log(`ArrayBuffer received in ${Date.now() - startTime}ms`);
+    
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString('base64');
+    const contentType = response.headers.get('content-type') || 'image/png';
+    const result = `data:${contentType};base64,${base64}`;
+    
+    console.log(`Image processing completed in ${Date.now() - startTime}ms`);
+    return result;
+  } catch (error) {
+    console.error(`Image fetch failed after ${Date.now() - startTime}ms:`, error);
+    throw error;
   }
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  const base64 = buffer.toString('base64');
-  const contentType = response.headers.get('content-type') || 'image/png';
-  return `data:${contentType};base64,${base64}`;
 }
 
 export default async function handler(req: NextRequest) {
+  const startTime = Date.now();
+  console.log('Starting request processing');
+
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ 
@@ -38,6 +57,7 @@ export default async function handler(req: NextRequest) {
 
   try {
     const { prompt } = await req.json();
+    console.log('Received prompt:', prompt);
 
     if (!prompt) {
       return new Response(
@@ -52,6 +72,9 @@ export default async function handler(req: NextRequest) {
       );
     }
 
+    console.log('Calling OpenAI API...');
+    const openaiStartTime = Date.now();
+    
     const response = await openai.images.generate({
       model: "dall-e-3",
       prompt: `A photorealistic architectural visualization of ${prompt}. The image should be highly detailed, professional, and showcase the house in the best possible light.`,
@@ -60,21 +83,30 @@ export default async function handler(req: NextRequest) {
       quality: "hd",
       style: "natural",
     });
+    
+    console.log(`OpenAI response received in ${Date.now() - openaiStartTime}ms`);
 
     const imageUrl = response.data[0].url;
     if (!imageUrl) {
       throw new Error('No image URL received from OpenAI');
     }
 
-    // Fetch and convert image to base64
+    console.log('Converting image to base64...');
     const imageData = await fetchImageAsBase64(imageUrl);
+
+    const totalTime = Date.now() - startTime;
+    console.log(`Total processing time: ${totalTime}ms`);
 
     return new Response(
       JSON.stringify({
         success: true,
         imageUrl,
         imageData,
-        prompt
+        prompt,
+        timing: {
+          total: totalTime,
+          openai: Date.now() - openaiStartTime
+        }
       }),
       { 
         status: 200,
@@ -83,11 +115,18 @@ export default async function handler(req: NextRequest) {
     );
 
   } catch (error) {
-    console.error('Error generating image:', error);
+    const errorTime = Date.now() - startTime;
+    console.error(`Error after ${errorTime}ms:`, error);
+    
     return new Response(
       JSON.stringify({
         success: false,
-        message: error instanceof Error ? error.message : 'Error generating house'
+        message: error instanceof Error ? error.message : 'Error generating house',
+        errorDetails: process.env.NODE_ENV === 'development' ? {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          timing: errorTime
+        } : undefined
       }),
       { 
         status: 500,

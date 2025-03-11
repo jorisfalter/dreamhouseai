@@ -24,8 +24,12 @@ export default function Home() {
     setError('');
     setGeneratedImage('');
     
+    const startTime = Date.now();
+    console.log('Starting house generation...');
+    
     try {
       // Step 1: Generate the image
+      console.log('Calling generate-house-edge API...');
       const generateResponse = await fetch('/api/generate-house-edge', {
         method: 'POST',
         headers: {
@@ -34,7 +38,10 @@ export default function Home() {
         body: JSON.stringify({ prompt }),
       });
       
+      console.log(`API response received in ${Date.now() - startTime}ms`);
+      
       const generateData = await generateResponse.json();
+      console.log('API response data:', generateData);
       
       if (!generateResponse.ok || !generateData.success) {
         throw new Error(generateData.message || 'Failed to generate house');
@@ -42,9 +49,11 @@ export default function Home() {
 
       // Show the image immediately
       setGeneratedImage(generateData.imageData);
+      console.log('Image set to state');
 
       // Step 2: Save to database
       if (generateData.imageUrl && generateData.imageData) {
+        console.log('Starting database save...');
         const saveResponse = await fetch('/api/save-house', {
           method: 'POST',
           headers: {
@@ -58,15 +67,16 @@ export default function Home() {
         });
 
         const saveData = await saveResponse.json();
+        console.log('Database save response:', saveData);
         
         if (!saveResponse.ok || !saveData.success) {
           console.error('Failed to save house:', saveData.message);
-          // Don't throw here - we still want to show the image
         }
       }
 
+      console.log(`Total operation completed in ${Date.now() - startTime}ms`);
     } catch (error) {
-      console.error('Error:', error);
+      console.error(`Error after ${Date.now() - startTime}ms:`, error);
       setError(error instanceof Error ? error.message : 'An error occurred while generating the house');
     } finally {
       setIsLoading(false);

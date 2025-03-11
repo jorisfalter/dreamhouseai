@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "pages/api/**/*": {
-      "maxDuration": 300
+      "maxDuration": 60
     }
   },
   "regions": ["iad1"]

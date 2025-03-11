@@ -25,52 +25,44 @@ export default function Home() {
     setGeneratedImage('');
     
     try {
-      // Step 1: Generate image URL from OpenAI
-      const generateResponse = await fetch('/api/generate-house-edge', {
+      // Start the generation process
+      const startResponse = await fetch('/api/start-generation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt }),
       });
-      
-      const generateData = await generateResponse.json();
-      if (!generateResponse.ok || !generateData.success) {
-        throw new Error(generateData.message || 'Failed to generate house');
+
+      const startData = await startResponse.json();
+      if (!startResponse.ok || !startData.success) {
+        throw new Error(startData.message || 'Failed to start generation');
       }
 
-      // Step 2: Fetch and convert image
-      const fetchResponse = await fetch('/api/fetch-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: generateData.imageUrl }),
-      });
+      // Poll for results
+      const jobId = startData.jobId;
+      while (true) {
+        const statusResponse = await fetch(`/api/check-status/${jobId}`);
+        const statusData = await statusResponse.json();
 
-      const fetchData = await fetchResponse.json();
-      if (!fetchResponse.ok || !fetchData.success) {
-        throw new Error(fetchData.message || 'Failed to fetch image');
-      }
+        if (!statusResponse.ok || !statusData.success) {
+          throw new Error(statusData.message || 'Failed to check status');
+        }
 
-      // Show the image immediately
-      setGeneratedImage(fetchData.imageData);
+        if (statusData.status === 'completed') {
+          setGeneratedImage(statusData.imageData);
+          break;
+        }
 
-      // Step 3: Save to database
-      const saveResponse = await fetch('/api/save-house', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: generateData.prompt,
-          imageUrl: generateData.imageUrl,
-          imageData: fetchData.imageData,
-        }),
-      });
+        if (statusData.status === 'failed') {
+          throw new Error(statusData.error || 'Generation failed');
+        }
 
-      const saveData = await saveResponse.json();
-      if (!saveResponse.ok || !saveData.success) {
-        console.error('Failed to save house:', saveData.message);
+        // Wait 2 seconds before checking again
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
     } catch (error) {
       console.error('Error:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred while generating the house');
+      setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setIsLoading(false);
     }

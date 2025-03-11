@@ -39,7 +39,10 @@ export default function Home() {
 
       // Poll for results
       const jobId = startData.jobId;
-      while (true) {
+      let attempts = 0;
+      const maxAttempts = 60; // 2 minutes maximum (with 2-second intervals)
+
+      while (attempts < maxAttempts) {
         const statusResponse = await fetch(`/api/check-status/${jobId}`);
         const statusData = await statusResponse.json();
 
@@ -58,6 +61,11 @@ export default function Home() {
 
         // Wait 2 seconds before checking again
         await new Promise(resolve => setTimeout(resolve, 2000));
+        attempts++;
+      }
+
+      if (attempts >= maxAttempts) {
+        throw new Error('Generation is taking longer than expected. Please check the gallery later.');
       }
 
     } catch (error) {

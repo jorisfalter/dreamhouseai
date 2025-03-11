@@ -7,6 +7,20 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
+// Vercel's free tier has a 10s timeout
+const TIMEOUT_DURATION = 8000; // 8 seconds to give us some buffer
+
+function timeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Operation timed out'));
+      }, ms);
+    })
+  ]);
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -16,28 +30,57 @@ export default async function handler(
   }
 
   try {
-    await dbConnect();
+    // Connect to DB with timeout
+    await timeoutPromise(dbConnect(), TIMEOUT_DURATION);
     const { prompt } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ success: false, message: 'Prompt is required' });
     }
 
-    // Create a new job
-    const job = await Job.create({
-      prompt,
-      status: 'pending'
-    });
+    // Create a new job with timeout
+    const job = await timeoutPromise(
+      Job.create({
+        prompt,
+        status: 'pending'
+      }),
+      TIMEOUT_DURATION
+    );
 
     // Start the generation process in the background
-    generateImage(job._id, prompt).catch(console.error);
+    // Don't await this - let it run independently
+    generateImage(job._id, prompt).catch(async (error) => {
+      console.error('Background job failed:', error);
+      try {
+        const job = await Job.findById(jobId);
+        if (job) {
+          job.status = 'failed';
+          job.error = error instanceof Error ? error.message : 'Unknown error';
+          await job.save();
+        }
+      } catch (e) {
+        console.error('Failed to update job status:', e);
+      }
+    });
 
+    // Return quickly with the job ID
     return res.status(200).json({
       success: true,
-      jobId: job._id
+      jobId: job._id,
+      message: 'Generation started'
     });
+
   } catch (error) {
     console.error('Error starting generation:', error);
+    
+    // Handle timeout specifically
+    if (error instanceof Error && error.message === 'Operation timed out') {
+      return res.status(503).json({
+        success: false,
+        message: 'Service temporarily unavailable - please try again'
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: error instanceof Error ? error.message : 'Error starting generation'
@@ -83,6 +126,7 @@ async function generateImage(jobId: string, prompt: string) {
     await job.save();
 
   } catch (error) {
+    console.error('Generation process failed:', error);
     job.status = 'failed';
     job.error = error instanceof Error ? error.message : 'Unknown error';
     await job.save();

@@ -13,27 +13,24 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method not allowed' });
+    return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
   try {
     await dbConnect();
+    const houses = await House.find({}).sort({ createdAt: -1 });
     
-    // Only select the fields we need initially, excluding the large imageData
-    const houses = await House.find({}, { imageData: 0 })
-      .sort({ createdAt: -1 })
-      .lean();
-    
-    return res.status(200).json({ 
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(200).json({
       success: true,
-      data: houses 
+      data: houses
     });
   } catch (error) {
     console.error('Error fetching houses:', error);
-    return res.status(500).json({ 
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(500).json({
       success: false,
-      message: 'Failed to fetch houses',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      message: error instanceof Error ? error.message : 'Failed to fetch houses'
     });
   }
 } 

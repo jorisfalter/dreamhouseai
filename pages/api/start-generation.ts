@@ -25,12 +25,14 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Always set JSON content type
+  res.setHeader('Content-Type', 'application/json');
+
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
   try {
-    // Connect to DB with timeout
     await timeoutPromise(dbConnect(), TIMEOUT_DURATION);
     const { prompt } = req.body;
 
@@ -48,7 +50,6 @@ export default async function handler(
     );
 
     // Start the generation process in the background
-    // Don't await this - let it run independently
     generateImage(job._id, prompt).catch(async (error) => {
       console.error('Background job failed:', error);
       try {
@@ -63,7 +64,6 @@ export default async function handler(
       }
     });
 
-    // Return quickly with the job ID
     return res.status(200).json({
       success: true,
       jobId: job._id,
@@ -73,7 +73,6 @@ export default async function handler(
   } catch (error) {
     console.error('Error starting generation:', error);
     
-    // Handle timeout specifically
     if (error instanceof Error && error.message === 'Operation timed out') {
       return res.status(503).json({
         success: false,

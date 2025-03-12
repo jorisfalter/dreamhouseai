@@ -2,15 +2,18 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ["oaidalleapicontent.blob.core.windows.net"],
+    domains: ["oaidalleapiprodscus.blob.core.windows.net"],
   },
   experimental: {
-    serverActions: true,
+    serverActions: {
+      allowedOrigins: ["localhost:3000", "dreamhouse-ai.fly.dev"],
+    },
   },
   webpack: (config) => {
     config.experiments = { ...config.experiments, topLevelAwait: true };
     return config;
   },
+  output: "standalone",
 };
 
 module.exports = nextConfig;

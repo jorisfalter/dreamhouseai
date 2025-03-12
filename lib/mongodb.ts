@@ -13,13 +13,21 @@ if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
 }
 
-let cached = global.mongoose;
+interface CachedConnection {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+}
 
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
+// Initialize the cached connection
+const cached: CachedConnection = global.mongoose || { conn: null, promise: null };
+
+// Assign to global for reuse
+if (!global.mongoose) {
+  global.mongoose = cached;
 }
 
 async function dbConnect() {
+  // Now TypeScript knows cached is not undefined
   if (cached.conn) {
     return cached.conn;
   }

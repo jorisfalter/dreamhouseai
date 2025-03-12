@@ -29,4 +29,11 @@ module.exports = {
     },
   },
   plugins: [require("@tailwindcss/line-clamp")],
+  purge: {
+    enabled: process.env.NODE_ENV === "production",
+    content: [
+      "./pages/**/*.{js,ts,jsx,tsx}",
+      "./components/**/*.{js,ts,jsx,tsx}",
+    ],
+  },
 };

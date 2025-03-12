@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
 export const config = {
@@ -45,23 +45,16 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ 
-      success: false,
-      message: 'Method not allowed' 
-    });
+    return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
   try {
     const { prompt } = req.body;
-    
+
     if (!prompt) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Prompt is required' 
-      });
+      return res.status(400).json({ success: false, message: 'Prompt is required' });
     }
 
-    // Generate image using OpenAI
     const response = await openai.images.generate({
       model: "dall-e-3",
       prompt: `A photorealistic architectural visualization of ${prompt}. The image should be highly detailed, professional, and showcase the house in the best possible light.`,
@@ -76,21 +69,17 @@ export default async function handler(
       throw new Error('No image URL received from OpenAI');
     }
 
-    // Convert to base64
-    const imageData = await fetchImageAsBase64(imageUrl);
-
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
       imageUrl,
-      imageData,
       prompt
     });
 
   } catch (error) {
     console.error('Error generating image:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: error instanceof Error ? error.message : 'Error generating house'
+      message: error instanceof Error ? error.message : 'Error generating image'
     });
   }
 } 

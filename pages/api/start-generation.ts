@@ -115,6 +115,8 @@ async function generateImage(jobId: string, prompt: string) {
 
 
     // In the generateImage function:
+    type ReplicateOutput = string | string[] | { [key: string]: any };
+
     const output = await replicate.run(
         "black-forest-labs/flux-1.1-pro",
         {
@@ -126,13 +128,19 @@ async function generateImage(jobId: string, prompt: string) {
             guidance_scale: 7.5,
         }
         }
-    );
+    ) as ReplicateOutput;
 
-    console.log("output");
-    console.log(output);
+    console.log("output", output);
     
-    // Update: output is a single URL string, not an array
-    const imageUrl = output as string;
+    let imageUrl: string;
+    if (Array.isArray(output)) {
+      imageUrl = output[0];
+    } else if (typeof output === 'string') {
+      imageUrl = output;
+    } else {
+      throw new Error('Unexpected output format from Replicate');
+    }
+
     if (!imageUrl) {
       throw new Error('No image URL received from Replicate');
     }

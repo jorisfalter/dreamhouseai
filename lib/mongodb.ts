@@ -1,10 +1,13 @@
 import mongoose from 'mongoose';
 
+interface CachedConnection {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+}
+
 declare global {
-  var mongoose: {
-    conn: typeof mongoose | null;
-    promise: Promise<typeof mongoose> | null;
-  } | undefined;
+  // Make sure the global type matches our CachedConnection interface
+  var mongoose: CachedConnection | undefined;
 }
 
 const MONGODB_URI = process.env.MONGODB_URI!;
@@ -13,13 +16,8 @@ if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
 }
 
-interface CachedConnection {
-  conn: typeof mongoose | null;
-  promise: Promise<typeof mongoose> | null;
-}
-
-// Initialize the cached connection
-const cached: CachedConnection = global.mongoose || { conn: null, promise: null };
+// Initialize the cached connection with type assertion
+const cached = (global.mongoose || { conn: null, promise: null }) as CachedConnection;
 
 // Assign to global for reuse
 if (!global.mongoose) {
@@ -27,7 +25,6 @@ if (!global.mongoose) {
 }
 
 async function dbConnect() {
-  // Now TypeScript knows cached is not undefined
   if (cached.conn) {
     return cached.conn;
   }

@@ -18,12 +18,31 @@ export default async function handler(
 
   try {
     await dbConnect();
-    const houses = await House.find({}).sort({ createdAt: -1 });
+    
+    // Get page from query params, default to 0
+    const page = Number(req.query.page) || 0;
+    const limit = 10; // Reduced from 20 to 10 items per page
+    
+    // Only select specific fields (inclusion projection)
+    const houses = await House.find({})
+      .select('prompt imageUrl createdAt') // Only include these fields
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip(page * limit)
+      .lean(); // Use lean() for better performance
+    
+    // Get total count for pagination
+    const total = await House.countDocuments({});
     
     res.setHeader('Content-Type', 'application/json');
     return res.status(200).json({
       success: true,
-      data: houses
+      data: houses,
+      pagination: {
+        total,
+        page,
+        totalPages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     console.error('Error fetching houses:', error);

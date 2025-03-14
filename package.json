@@ -16,7 +16,8 @@
     "next": "latest",
     "openai": "^4.0.0",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "replicate": "^1.0.1"
   },
   "devDependencies": {
     "@tailwindcss/line-clamp": "^0.4.4",

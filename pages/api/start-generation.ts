@@ -1,11 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../lib/mongodb';
 import Job from '../../models/Job';
+import House from '../../models/House';
 import OpenAI from 'openai';
+import Replicate from "replicate";
+
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
+
+const replicate = new Replicate({
+    auth: process.env.REPLICATE_API_TOKEN,
+  });
 
 // Vercel's free tier has a 10s timeout
 const TIMEOUT_DURATION = 8000; // 8 seconds to give us some buffer
@@ -95,19 +102,39 @@ async function generateImage(jobId: string, prompt: string) {
     job.status = 'processing';
     await job.save();
 
-    // Generate image
-    const response = await openai.images.generate({
-      model: "dall-e-3",
-      prompt: `A photorealistic architectural visualization of ${prompt}. The image should be highly detailed, professional, and showcase the house in the best possible light.`,
-      n: 1,
-      size: "1024x1024",
-      quality: "hd",
-      style: "natural",
-    });
+    // // Generate image with Dalle
+    // const response = await openai.images.generate({
+    //   model: "dall-e-3",
+    //   prompt: `A photorealistic architectural visualization of ${prompt}. The image should be highly detailed, professional, and showcase the house in the best possible light.`,
+    //   n: 1,
+    //   size: "1024x1024",
+    //   quality: "hd",
+    //   style: "natural",
+    // });
+    // const imageUrl = response.data[0].url;
 
-    const imageUrl = response.data[0].url;
+
+    // In the generateImage function:
+    const output = await replicate.run(
+        "black-forest-labs/flux-1.1-pro",
+        {
+        input: {
+            prompt: `A photorealistic architectural visualization of ${prompt}. The image should be highly detailed, professional, and showcase the house in the best possible light.`,
+            width: 1024,
+            height: 1024,
+            num_inference_steps: 50,
+            guidance_scale: 7.5,
+        }
+        }
+    );
+
+    console.log("output");
+    console.log(output);
+    
+    // Update: output is a single URL string, not an array
+    const imageUrl = output as string;
     if (!imageUrl) {
-      throw new Error('No image URL received from OpenAI');
+      throw new Error('No image URL received from Replicate');
     }
 
     // Fetch and convert image
@@ -123,6 +150,13 @@ async function generateImage(jobId: string, prompt: string) {
     job.imageData = imageData;
     job.status = 'completed';
     await job.save();
+
+    // Save to House collection
+    await House.create({
+      prompt: prompt,
+      imageUrl: imageUrl,
+      imageData: imageData,
+    });
 
   } catch (error) {
     console.error('Generation process failed:', error);

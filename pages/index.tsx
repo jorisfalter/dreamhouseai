@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import Header from '../components/Header';
+import posthog from 'posthog-js';
 
 interface House {
   _id: string;
@@ -20,6 +21,12 @@ export default function Home() {
 
   const generateHouse = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Track when someone generates a house
+    posthog.capture('house_generated', {
+      prompt: prompt
+    });
+
     setIsLoading(true);
     setError('');
     setGeneratedImage('');

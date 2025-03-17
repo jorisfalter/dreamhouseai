@@ -12,7 +12,13 @@ const openai = new OpenAI({
 
 const replicate = new Replicate({
     auth: process.env.REPLICATE_API_TOKEN,
-  });
+});
+
+// Add token verification
+if (!process.env.REPLICATE_API_TOKEN) {
+    throw new Error('REPLICATE_API_TOKEN is not set');
+}
+console.log("Replicate token is set:", !!process.env.REPLICATE_API_TOKEN);
 
 // Vercel's free tier has a 10s timeout
 const TIMEOUT_DURATION = 8000; // 8 seconds to give us some buffer
@@ -113,38 +119,66 @@ async function generateImage(jobId: string, prompt: string) {
     // });
     // const imageUrl = response.data[0].url;
 
-
-    // In the generateImage function:
-    type ReplicateOutput = string | string[] | { [key: string]: any };
-
-    const output = await replicate.run(
-        "black-forest-labs/flux-1.1-pro",
-        {
-        input: {
-            prompt: `A photorealistic architectural visualization of ${prompt}. The image should be highly detailed, professional, and showcase the house in the best possible light.`,
-            width: 1024,
-            height: 1024,
-            num_inference_steps: 50,
-            guidance_scale: 7.5,
-        }
-        }
-    ) as ReplicateOutput;
-
-    console.log("output", output);
-    
     let imageUrl: string;
-    if (Array.isArray(output)) {
-      imageUrl = output[0];
-    } else if (typeof output === 'string') {
-      imageUrl = output;
-    } else {
-      throw new Error('Unexpected output format from Replicate');
-    }
 
-    if (!imageUrl) {
-      throw new Error('No image URL received from Replicate');
-    }
 
+    
+    try {
+        // Update the type definition to include the URL object pattern
+        type ReplicateOutput = string | string[] | { 
+            [key: string]: any;
+            url?: () => { href: string }
+        };
+
+        const output = await replicate.run(
+            "black-forest-labs/flux-1.1-pro",
+            {
+                input: {
+                    prompt: `A photorealistic architectural visualization of ${prompt}. The image should be highly detailed, professional, and showcase the house in the best possible light.`,
+                    width: 1024,
+                    height: 1024,
+                    num_inference_steps: 50,
+                    guidance_scale: 7.5,
+                },
+            }
+        ) as ReplicateOutput;
+
+        if (!output) {
+            throw new Error('No output received from Replicate');
+        }
+
+        // Type guard to check if output has url function
+        const hasUrlFunction = (obj: any): obj is { url: () => { href: string } } => {
+            return typeof obj === 'object' && obj !== null && typeof obj.url === 'function';
+        };
+
+        // Use type guard in the condition
+        if (hasUrlFunction(output)) {
+            imageUrl = output.url().href;
+        } else {
+            throw new Error('Invalid output format from Replicate');
+        }
+
+        console.log("Generated image URL:", imageUrl);
+
+    } catch (replicateError: unknown) {
+      console.error("Replicate API Error:", replicateError);
+      
+      // Type guard for Error objects
+      if (replicateError instanceof Error) {
+        console.error("Error details:", {
+          name: replicateError.name,
+          message: replicateError.message,
+          stack: replicateError.stack,
+          cause: replicateError.cause
+        });
+      } else {
+        console.error("Unknown error type:", replicateError);
+      }
+      
+      throw replicateError;
+    }
+    
     // Fetch and convert image
     const imageResponse = await fetch(imageUrl);
     const arrayBuffer = await imageResponse.arrayBuffer();

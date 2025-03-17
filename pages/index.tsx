@@ -112,10 +112,11 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 transition-all duration-500">
+    <div className="min-h-screen bg-white transition-all duration-500">
       <Head>
         <title>Dream House Generator</title>
         <meta name="description" content="Generate your dream house using AI" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <Header />

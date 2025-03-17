@@ -52,10 +52,11 @@ export default function Gallery() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen bg-white">
       <Head>
         <title>Gallery - Dream House AI</title>
         <meta name="description" content="Gallery of AI-generated dream houses" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <Header />

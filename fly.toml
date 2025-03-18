@@ -9,10 +9,15 @@ primary_region = 'ams'
 [build]
   dockerfile = 'Dockerfile'
 
+[build.args]
+  NEXT_PUBLIC_POSTHOG_KEY = "phc_2ZKWOWhslFYmnPpRuEVnUX8NFgGh7srzCA3QSEeG1yn"
+  NEXT_PUBLIC_POSTHOG_HOST = "https://eu.i.posthog.com"
+
 [env]
   PORT = '3000'
   NEXT_PUBLIC_POSTHOG_KEY = "phc_2ZKWOWhslFYmnPpRuEVnUX8NFgGh7srzCA3QSEeG1yn"
   NEXT_PUBLIC_POSTHOG_HOST = "https://eu.i.posthog.com"
+
 
 [http_service]
   internal_port = 3000

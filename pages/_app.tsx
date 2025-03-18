@@ -8,19 +8,33 @@ if (typeof window !== 'undefined') {
   const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
   const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;
   
+  console.log('Environment check:', {
+    isDevelopment: process.env.NODE_ENV === 'development',
+    envKeys: Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_')),
+    posthogKeyLength: posthogKey?.length,
+    posthogHost
+  });
+
   if (!posthogKey) {
-    console.error('PostHog key is not set');
+    console.error('PostHog key is not set. Available env vars:', {
+      hasKey: !!process.env.NEXT_PUBLIC_POSTHOG_KEY,
+      hasHost: !!process.env.NEXT_PUBLIC_POSTHOG_HOST
+    });
   } else {
-    posthog.init(
-      posthogKey,
-      {
-        api_host: posthogHost || 'https://eu.i.posthog.com',
-        loaded: (posthog) => {
-          if (process.env.NODE_ENV === 'development') posthog.debug();
-        },
-        capture_pageview: false
-      }
-    );
+    try {
+      posthog.init(
+        posthogKey,
+        {
+          api_host: posthogHost || 'https://eu.i.posthog.com',
+          loaded: (posthog) => {
+            if (process.env.NODE_ENV === 'development') posthog.debug();
+          },
+          capture_pageview: false
+        }
+      );
+    } catch (error) {
+      console.error('Failed to initialize PostHog:', error);
+    }
   }
 }
 

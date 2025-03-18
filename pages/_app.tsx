@@ -5,16 +5,23 @@ import posthog from 'posthog-js';
 
 // Initialize PostHog
 if (typeof window !== 'undefined') {
-  posthog.init(
-    process.env.NEXT_PUBLIC_POSTHOG_KEY!, // Make sure to add this to your .env
-    {
-      api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
-      loaded: (posthog) => {
-        if (process.env.NODE_ENV === 'development') posthog.debug();
-      },
-      capture_pageview: false // Handle pageviews manually
-    }
-  );
+  const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+  const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;
+  
+  if (!posthogKey) {
+    console.error('PostHog key is not set');
+  } else {
+    posthog.init(
+      posthogKey,
+      {
+        api_host: posthogHost || 'https://eu.i.posthog.com',
+        loaded: (posthog) => {
+          if (process.env.NODE_ENV === 'development') posthog.debug();
+        },
+        capture_pageview: false
+      }
+    );
+  }
 }
 
 export default function App({ Component, pageProps }: AppProps) {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 interface House {
   _id: string;
@@ -76,11 +77,11 @@ export default function Gallery() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.isArray(houses) ? houses.map((house) => (
               <div
                 key={house._id}
-                className="bg-white/70 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-102"
+                className="overflow-hidden"
               >
                 <div 
                   className="relative aspect-square cursor-pointer" 
@@ -93,7 +94,7 @@ export default function Gallery() {
                     <img
                       src={houseImages[house._id] || house.imageData}
                       alt={house.prompt}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover hover:opacity-90 transition-opacity rounded-lg"
                       onError={(e) => {
                         console.error('Error loading image:', e);
                         (e.target as HTMLImageElement).src = '/placeholder-house.png';
@@ -105,8 +106,8 @@ export default function Gallery() {
                     </div>
                   )}
                 </div>
-                <div className="p-6">
-                  <p className="text-gray-800 line-clamp-3">{house.prompt}</p>
+                <div className="pt-2">
+                  <p className="text-gray-800 text-sm line-clamp-2">{house.prompt}</p>
                 </div>
               </div>
             )) : null}
@@ -118,11 +119,11 @@ export default function Gallery() {
             className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
             onClick={() => setSelectedImage(null)}
           >
-            <div className="max-w-4xl w-full bg-white rounded-lg overflow-hidden shadow-xl">
+            <div className="max-w-4xl w-full bg-white rounded-xl overflow-hidden shadow-xl">
               <img
                 src={selectedImage.url}
                 alt={selectedImage.prompt}
-                className="w-full h-auto"
+                className="w-full h-auto rounded-t-xl"
                 onClick={(e) => e.stopPropagation()}
               />
               <div className="p-4 bg-white">
@@ -138,6 +139,8 @@ export default function Gallery() {
           </div>
         )}
       </main>
+
+      <Footer />
     </div>
   );
 } 

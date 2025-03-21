@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import type { AppProps } from 'next/app';
 import '../styles/globals.css';
 import posthog from 'posthog-js';
+import { DM_Sans } from 'next/font/google';
 
 // Initialize PostHog
 if (typeof window !== 'undefined') {
@@ -38,6 +39,12 @@ if (typeof window !== 'undefined') {
   }
 }
 
+const dmSans = DM_Sans({
+  weight: ['400', '500', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+});
+
 export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
     // Track page views
@@ -52,5 +59,9 @@ export default function App({ Component, pageProps }: AppProps) {
     };
   }, []);
 
-  return <Component {...pageProps} />;
+  return (
+    <div className={dmSans.className}>
+      <Component {...pageProps} />
+    </div>
+  );
 } 

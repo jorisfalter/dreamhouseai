@@ -133,7 +133,7 @@ export default function Home() {
       <main className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-16">
         <div className="max-w-3xl w-full">
           <div className="text-center mb-12 transform hover:scale-105 transition-transform duration-300">
-            <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-4">
+            <h1 className="text-5xl font-semibold text-gray-800 mb-4">
               Dream House Generator
             </h1>
             <p className="text-xl text-gray-600 animate-fade-in">

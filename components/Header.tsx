@@ -17,7 +17,7 @@ export default function Header() {
                 className="object-contain w-auto h-auto"
               />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="text-xl font-semibold text-gray-800">
               DreamHouse AI
             </span>
           </Link>

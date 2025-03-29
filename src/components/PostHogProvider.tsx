@@ -10,14 +10,35 @@ interface PostHogProviderProps {
 
 export default function PostHogProvider({ children }: PostHogProviderProps) {
   useEffect(() => {
-    if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
-      posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
-        api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-        loaded: (posthog) => {
-          if (process.env.NODE_ENV === 'development') posthog.debug()
-        },
-        capture_pageview: true
+    try {
+      console.log('PostHog initialization starting...', {
+        windowExists: typeof window !== 'undefined',
+        hasPostHogKey: !!process.env.NEXT_PUBLIC_POSTHOG_KEY,
+        postHogHost: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+        isDevelopment: process.env.NODE_ENV === 'development'
       })
+
+      if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
+        posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
+          api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+          loaded: (posthog) => {
+            console.log('PostHog loaded successfully')
+            if (process.env.NODE_ENV === 'development') {
+              posthog.debug()
+              console.log('PostHog debug mode enabled')
+            }
+          },
+          capture_pageview: true
+        })
+
+        // Test if PostHog is available globally
+        console.log('PostHog global object available:', {
+          isDefined: typeof window.posthog !== 'undefined',
+          hasCapture: typeof window.posthog?.capture === 'function'
+        })
+      }
+    } catch (error) {
+      console.error('Error initializing PostHog:', error)
     }
   }, [])
 

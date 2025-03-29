@@ -1,4 +1,5 @@
 import PostHogProvider from '../components/PostHogProvider'
+import PostHogTest from '../components/PostHogTest'
 
 export default function RootLayout({
   children,
@@ -8,7 +9,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <PostHogProvider>{children}</PostHogProvider>
+        <PostHogProvider>
+          <PostHogTest />
+          {children}
+        </PostHogProvider>
       </body>
     </html>
   )

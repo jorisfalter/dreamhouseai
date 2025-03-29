@@ -11,4 +11,17 @@ vercel didn't work with the 10s api limit
 
 Fly does not read from github, deployed straight from cursor with fly deploy
 
+## Troubleshooting
+
+### PostHog Integration
+
+If PostHog is not working in production, check the browser console for error logs. Common issues:
+
+- CORS configuration
+- API key misconfiguration
+- Network connectivity issues
+- Content Security Policy (CSP) blocking PostHog scripts
+
+To enable detailed PostHog debugging, add `posthog.debug(true)` after initialization.
+
 ################################################

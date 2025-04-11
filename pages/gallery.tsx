@@ -54,6 +54,7 @@ export default function Gallery() {
 
   return (
     <div className="min-h-screen bg-white">
+     
       <Head>
         <title>Gallery - Dream House AI</title>
         <meta name="description" content="Gallery of AI-generated dream houses" />
@@ -136,6 +137,16 @@ export default function Gallery() {
         {!isLoading && houses.length === 0 && (
           <div className="text-center text-gray-600 py-12">
             No houses generated yet. Be the first to create one!
+          </div>
+        )}
+
+        {!isLoading && houses.length > 0 && (
+          <div className="flex justify-center mt-8 mb-12">
+            <button
+              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity"
+            >
+              Load More
+            </button>
           </div>
         )}
       </main>

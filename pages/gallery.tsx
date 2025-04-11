@@ -145,7 +145,7 @@ export default function Gallery() {
             <button
               className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity"
             >
-              Load More
+              {/* Load More */}
             </button>
           </div>
         )}

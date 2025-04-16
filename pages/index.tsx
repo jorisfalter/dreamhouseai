@@ -190,6 +190,7 @@ export default function Home() {
           )}
         </div>
 
+          {/* gallery */}
         <section className="mt-16">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">

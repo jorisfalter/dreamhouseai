@@ -21,7 +21,7 @@ export default async function handler(
     
     // Get page from query params, default to 0
     const page = Number(req.query.page) || 0;
-    const limit = 10; // Reduced from 20 to 10 items per page
+    const limit = 12; // Reduced from 20 to 10 items per page
     
     // Only select specific fields (inclusion projection)
     const houses = await House.find({})

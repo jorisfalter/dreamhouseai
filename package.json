@@ -9,7 +9,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "download-db": "ts-node scripts/download-db.ts"
   },
   "dependencies": {
     "mongoose": "^7.6.3",

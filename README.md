@@ -13,6 +13,11 @@ Fly does not read from github, deployed straight from cursor with fly deploy
 
 ## Troubleshooting
 
+## Scripts
+
+npm run add-tags
+npm run download-db
+
 ### PostHog Integration
 
 If PostHog is not working in production, check the browser console for error logs. Common issues:

@@ -8,6 +8,7 @@ interface House {
   _id: string;
   prompt: string;
   imageUrl: string;
+  imageData: string;
   createdAt: string;
 }
 
@@ -16,16 +17,14 @@ export default function Home() {
   const [generatedImage, setGeneratedImage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [houses, setHouses] = useState<House[]>([]);
+  const [selectedImage, setSelectedImage] = useState<{ url: string; prompt: string } | null>(null);
   const [houseImages, setHouseImages] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
 
   const generateHouse = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Track when someone generates a house
-    posthog.capture('house_generated', {
-      prompt: prompt
-    });
+
 
     setIsLoading(true);
     setError('');
@@ -86,10 +85,9 @@ export default function Home() {
   useEffect(() => {
     const fetchHouses = async () => {
       try {
-        const response = await fetch('/api/houses');
+        const response = await fetch('/api/houses?limit=8'); // Limit to 8 images for homepage
         const result = await response.json();
-        
-        if (result.success && Array.isArray(result.data)) {
+        if (result.success) {
           setHouses(result.data);
           
           // Fetch images for each house
@@ -97,18 +95,14 @@ export default function Home() {
             try {
               const imageResponse = await fetch(`/api/house/${house._id}`);
               const imageData = await imageResponse.json();
-              if (imageData.success) {
-                setHouseImages(prev => ({
-                  ...prev,
-                  [house._id]: imageData.imageData
-                }));
-              }
+              setHouseImages(prev => ({
+                ...prev,
+                [house._id]: imageData.imageData
+              }));
             } catch (error) {
               console.error(`Error fetching image for house ${house._id}:`, error);
             }
           });
-        } else {
-          console.error('Invalid response format from /api/houses');
         }
       } catch (error) {
         console.error('Error fetching houses:', error);
@@ -119,27 +113,22 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white transition-all duration-500">
+    <div className="min-h-screen bg-white">
       <Head>
-        <title>Dream House Generator</title>
-        <meta name="description" content="Generate your dream house using AI" />
+        <title>Dream House AI</title>
+        <meta name="description" content="Generate your dream house with AI" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <Header />
 
-      {/* Main Content - Centered */}
-      <main className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-16">
-        <div className="max-w-3xl w-full">
-          <div className="text-center mb-12 transform hover:scale-105 transition-transform duration-300">
-            <h1 className="text-5xl font-semibold text-gray-800 mb-4">
-              Dream House Generator
-            </h1>
-            <p className="text-xl text-gray-600 animate-fade-in">
-              Describe your perfect home and watch it come to life!
-            </p>
-          </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24">
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-bold text-gray-800 mb-4">Dream House AI</h1>
+          <p className="text-xl text-gray-600">Describe your dream house and see it come to life</p>
+        </div>
 
+        <div className="max-w-3xl mx-auto mb-16">
           <form onSubmit={generateHouse} className="space-y-6">
             <div className="transform hover:scale-101 transition-all duration-300">
               <textarea
@@ -200,7 +189,82 @@ export default function Home() {
             </div>
           )}
         </div>
+
+        <section className="mt-16">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+              Recent Creations
+            </h2>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center items-center min-h-[400px]">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {Array.isArray(houses) ? houses.map((house) => (
+                <div key={house._id} className="overflow-hidden">
+                  <div 
+                    className="relative aspect-square cursor-pointer" 
+                    onClick={() => setSelectedImage({ 
+                      url: houseImages[house._id] || house.imageData, 
+                      prompt: house.prompt 
+                    })}
+                  >
+                    {(houseImages[house._id] || house.imageData) ? (
+                      <img
+                        src={houseImages[house._id] || house.imageData}
+                        alt={house.prompt}
+                        className="w-full h-full object-cover hover:opacity-90 transition-opacity rounded-lg"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/placeholder-house.png';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                        <p className="text-gray-500">Loading image...</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="pt-2">
+                    <p className="text-gray-800 text-sm line-clamp-2">{house.prompt}</p>
+                  </div>
+                </div>
+              )) : null}
+            </div>
+          )}
+
+          <div className="text-center mt-8">
+            <a
+              href="/gallery"
+              className="inline-block px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity"
+            >
+              View Gallery
+            </a>
+          </div>
+        </section>
+
+        {selectedImage && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedImage(null)}
+          >
+            <div className="max-w-4xl w-full bg-white rounded-xl overflow-hidden shadow-xl">
+              <img
+                src={selectedImage.url}
+                alt={selectedImage.prompt}
+                className="w-full h-auto rounded-t-xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <div className="p-4 bg-white">
+                <p className="text-gray-800">{selectedImage.prompt}</p>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
+
       <Footer />
     </div>
   );

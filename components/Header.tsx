@@ -42,6 +42,12 @@ export default function Header() {
             >
               About
             </Link>
+            <Link
+              href="/search"
+              className="text-gray-600 hover:text-purple-600 transition-colors duration-300 font-medium"
+            >
+              Search
+            </Link>
             <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg 
               transform hover:scale-105 transition-all duration-300 hover:shadow-lg font-medium">
               Sign In

@@ -17,16 +17,3 @@ Fly does not read from github, deployed straight from cursor with fly deploy
 
 npm run add-tags
 npm run download-db
-
-### PostHog Integration
-
-If PostHog is not working in production, check the browser console for error logs. Common issues:
-
-- CORS configuration
-- API key misconfiguration
-- Network connectivity issues
-- Content Security Policy (CSP) blocking PostHog scripts
-
-To enable detailed PostHog debugging, add `posthog.debug(true)` after initialization.
-
-################################################

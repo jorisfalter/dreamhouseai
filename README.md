@@ -11,8 +11,6 @@ vercel didn't work with the 10s api limit
 
 Fly does not read from github, deployed straight from cursor with fly deploy
 
-## Troubleshooting
-
 ## Scripts
 
 npm run add-tags

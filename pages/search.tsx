@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -13,12 +13,68 @@ interface House {
 
 export default function SearchPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
   const [houses, setHouses] = useState<House[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [houseImages, setHouseImages] = useState<Record<string, string>>({});
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Handle clicks outside suggestions box
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Fetch suggestions when user types
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+
+    if (value.length >= 2) {
+      try {
+        const response = await fetch('/api/autocomplete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ searchTerm: value }),
+        });
+
+        const data = await response.json();
+        console.log('Autocomplete response:', data);
+
+        if (data.suggestions) {
+          setSuggestions(data.suggestions);
+          setShowSuggestions(true);
+        } else {
+          console.log('No suggestions found:', data);
+        }
+      } catch (error) {
+        console.error('Error fetching suggestions:', error);
+      }
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setSearchTerm(suggestion);
+    setShowSuggestions(false);
+    // Optionally trigger search immediately
+    handleSearch(suggestion);
+  };
+
+  // Modified handleSearch to accept direct search term
+  const handleSearch = async (term?: string) => {
+    const searchValue = term || searchTerm;
     setIsLoading(true);
 
     try {
@@ -27,7 +83,7 @@ export default function SearchPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ searchTerm }),
+        body: JSON.stringify({ searchTerm: searchValue }),
       });
 
       const data = await response.json();
@@ -73,15 +129,37 @@ export default function SearchPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-12">
-          <div className="flex gap-4">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search houses by description... (e.g., 'modern villa with pool')"
-              className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+        <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="max-w-2xl mx-auto mb-12">
+          <div className="relative flex gap-4">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={handleInputChange}
+                onFocus={() => searchTerm.length >= 3 && setShowSuggestions(true)}
+                placeholder="Search houses by description... (e.g., 'modern villa with pool')"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              
+              {/* Suggestions dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div 
+                  ref={suggestionsRef}
+                  className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg"
+                >
+                  {suggestions.map((suggestion, index) => (
+                    <div
+                      key={index}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                      {suggestion}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <button
               type="submit"
               disabled={isLoading}

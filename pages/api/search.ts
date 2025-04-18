@@ -20,20 +20,35 @@ export default async function handler(
     const db = mongoose.connection;
 
     // Perform the Atlas Search query
-    const results = await db.collection('your_collection_name').aggregate([
+    const results = await db.collection('houses').aggregate([
       {
         $search: {
-          index: "default", // Make sure this matches your Atlas Search index name
+          index: "default",
           text: {
             query: searchTerm,
-            path: {
-              wildcard: "*" // This will search across all fields
+            path: "prompt",  // Search in the prompt field
+            fuzzy: {
+              maxEdits: 1,
+              prefixLength: 3
             }
           }
         }
       },
       {
-        $limit: 10 // Limit results to 10 items
+        $project: {
+          _id: 1,
+          prompt: 1,
+          imageUrl: 1,
+          imageData: 1,
+          createdAt: 1,
+          score: { $meta: "searchScore" }
+        }
+      },
+      {
+        $sort: { score: -1 }  // Sort by search relevance
+      },
+      {
+        $limit: 12  // Limit results to 12 items
       }
     ]).toArray();
 
